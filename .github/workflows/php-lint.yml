@@ -1,0 +1,44 @@
+name: PHP lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "appinfo/**"
+      - "composer.json"
+      - ".github/workflows/php-lint.yml"
+  pull_request:
+    paths:
+      - "lib/**"
+      - "appinfo/**"
+      - "composer.json"
+      - ".github/workflows/php-lint.yml"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ["8.1", "8.2", "8.3"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Syntax check (php -l)
+        run: |
+          set -e
+          find lib appinfo -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Validate appinfo/info.xml well-formedness
+        run: php -r "if (!@simplexml_load_file('appinfo/info.xml')) { fwrite(STDERR, 'info.xml is not valid XML' . PHP_EOL); exit(1); } echo 'info.xml OK' . PHP_EOL;"

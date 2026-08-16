@@ -1,0 +1,86 @@
+name: PHPUnit
+
+# Les tests unitaires de cette appli mockent des interfaces OCP\* et
+# étendent \Test\TestCase, fournies par le cœur de Nextcloud (voir
+# tests/bootstrap.php et DEVELOPMENT.md). Ce workflow clone donc un vrai
+# serveur Nextcloud, y place l'appli, puis lance PHPUnit dedans — plus
+# lourd que php-lint.yml, mais c'est la seule façon de faire tourner ces
+# tests.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "tests/**"
+      - "appinfo/**"
+      - "composer.json"
+      - "phpunit.xml"
+      - ".github/workflows/phpunit.yml"
+  pull_request:
+    paths:
+      - "lib/**"
+      - "tests/**"
+      - "appinfo/**"
+      - "composer.json"
+      - "phpunit.xml"
+      - ".github/workflows/phpunit.yml"
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Adapter cette liste si la plage <nextcloud min-version max-version>
+        # d'appinfo/info.xml change.
+        server-branch: ["stable27", "stable29", "master"]
+        php-version: ["8.1"]
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Checkout Nextcloud server (${{ matrix.server-branch }})
+        uses: actions/checkout@v4
+        with:
+          repository: nextcloud/server
+          ref: ${{ matrix.server-branch }}
+          submodules: recursive
+          path: server
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer:v2
+          extensions: sqlite3, mbstring, gd, zip, curl, xml
+          coverage: none
+
+      - name: Link app into server/apps
+        run: |
+          rm -rf server/apps/tickets
+          cp -r app server/apps/tickets
+
+      - name: Install app composer dependencies (dev, incl. phpunit)
+        working-directory: server/apps/tickets
+        run: composer install --no-progress --prefer-dist
+
+      - name: Install Nextcloud (sqlite, one-time setup)
+        working-directory: server
+        run: |
+          php occ maintenance:install \
+            --database=sqlite \
+            --admin-user=admin \
+            --admin-pass=admin123456 \
+            --no-interaction
+
+      - name: Enable app
+        working-directory: server
+        run: php occ app:enable tickets
+
+      - name: Run PHPUnit
+        working-directory: server/apps/tickets
+        run: composer run test:unit
