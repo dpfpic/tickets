@@ -32,17 +32,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Chaque version de serveur Nextcloud exige une version PHP minimale
-        # différente (ex. stable29+ requiert PHP >= 8.3) ; on associe donc
-        # explicitement branche <-> PHP plutôt que de croiser deux axes.
-        # Adapter si la plage <nextcloud min-version max-version> d'appinfo/info.xml
-        # change, ou si les versions PHP minimales de Nextcloud évoluent.
+        # On teste contre les branches Nextcloud actuellement maintenues
+        # (cf. https://github.com/nextcloud/server/wiki/Maintenance-and-Release-Schedule),
+        # toutes dans la plage <nextcloud min-version="27" max-version="34" />
+        # d'appinfo/info.xml :
+        # - les anciennes branches (ex. stable27, stable29) ne sont plus
+        #   maintenues et peuvent disparaître du dépôt, donc ne sont plus
+        #   fiables pour du CI dans la durée ;
+        # - "master" correspond à la prochaine version majeure (35+), donc
+        #   dépasse le max-version déclaré et est rejetée par occ app:enable
+        #   tant que ce max-version n'est pas remonté volontairement.
+        # A adapter si la plage min/max de info.xml change.
         include:
-          - server-branch: "stable27"
-            php-version: "8.1"
-          - server-branch: "stable29"
+          - server-branch: "stable32"
             php-version: "8.2"
-          - server-branch: "master"
+          - server-branch: "stable33"
+            php-version: "8.2"
+          - server-branch: "stable34"
             php-version: "8.3"
 
     steps:
