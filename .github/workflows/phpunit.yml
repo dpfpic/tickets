@@ -32,10 +32,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Adapter cette liste si la plage <nextcloud min-version max-version>
-        # d'appinfo/info.xml change.
-        server-branch: ["stable27", "stable29", "master"]
-        php-version: ["8.1"]
+        # Chaque version de serveur Nextcloud exige une version PHP minimale
+        # différente (ex. stable29+ requiert PHP >= 8.3) ; on associe donc
+        # explicitement branche <-> PHP plutôt que de croiser deux axes.
+        # Adapter si la plage <nextcloud min-version max-version> d'appinfo/info.xml
+        # change, ou si les versions PHP minimales de Nextcloud évoluent.
+        include:
+          - server-branch: "stable27"
+            php-version: "8.1"
+          - server-branch: "stable29"
+            php-version: "8.2"
+          - server-branch: "master"
+            php-version: "8.3"
 
     steps:
       - name: Checkout app
