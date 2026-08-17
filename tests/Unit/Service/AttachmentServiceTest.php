@@ -284,11 +284,11 @@ class AttachmentServiceTest extends \Test\TestCase {
         ]);
         $ticketsFolder->method('get')->with($ticketNumber)->willReturn($ticketFolder);
 
-        $ticketFolder->method('nodeExists')->with('..__etc_passwd.txt')->willReturn(false);
+        $ticketFolder->method('nodeExists')->with('.._.._etc_passwd.txt')->willReturn(false);
         $ticketFolder->expects($this->once())->method('newFile')
-            ->with('..__etc_passwd.txt', $this->isType('resource'))
+            ->with('.._.._etc_passwd.txt', $this->isType('resource'))
             ->willReturn($file);
-        $file->method('getName')->willReturn('..__etc_passwd.txt');
+        $file->method('getName')->willReturn('.._.._etc_passwd.txt');
         $file->method('getSize')->willReturn(1);
         $file->method('getMimeType')->willReturn('text/plain');
 
