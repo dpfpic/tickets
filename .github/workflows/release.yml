@@ -1,0 +1,96 @@
+name: Release
+
+# Se déclenche uniquement quand appinfo/info.xml change sur main. On extrait
+# la version déclarée et on ne fait quelque chose que si aucun tag ne
+# correspond déjà à cette version, ce qui permet de ne réagir qu'aux vrais
+# bumps de version (les commits qui touchent info.xml sans changer la
+# version, ex. la plage de compatibilité, ne créent pas de nouvelle release).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "appinfo/info.xml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from appinfo/info.xml
+        id: version
+        run: |
+          version=$(grep -oPm1 '(?<=<version>)[^<]+' appinfo/info.xml)
+          if [ -z "$version" ]; then
+            echo "Impossible de lire la version dans appinfo/info.xml" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check if this version was already released
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Build frontend (production)
+        if: steps.check.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Package release zip
+        if: steps.check.outputs.exists == 'false'
+        id: package
+        run: |
+          app_id=$(grep -oPm1 '(?<=<id>)[^<]+' appinfo/info.xml)
+          staging="/tmp/release/$app_id"
+          mkdir -p "$staging"
+          # rsync plutôt qu'un simple cp : exclut proprement le dépôt git,
+          # les workflows CI, les dépendances et fichiers de dev qui n'ont
+          # rien à faire dans le zip distribué aux instances Nextcloud.
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.gitignore' \
+            --exclude='*.map' \
+            ./ "$staging/"
+          zip_name="${app_id}-v${{ steps.version.outputs.version }}.zip"
+          (cd /tmp/release && zip -r -X "/tmp/$zip_name" "$app_id")
+          echo "zip_path=/tmp/$zip_name" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$zip_name" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "${{ steps.package.outputs.zip_path }}#${{ steps.package.outputs.zip_name }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            --target "${{ github.sha }}"
