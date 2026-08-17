@@ -152,7 +152,7 @@ class SettingsControllerTest extends \Test\TestCase {
         $this->stubCurrentConfig();
         $this->groupManager->method('groupExists')->willReturn(false);
 
-        $response = $this->controller->saveConfig(['syndic'], [], [['label_fr' => 'Plomberie']]);
+        $response = $this->controller->saveConfig([], ['syndic'], [['label_fr' => 'Plomberie']]);
 
         $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
         $this->assertSame('Invalid board group', $response->getData()['message']);
@@ -162,7 +162,7 @@ class SettingsControllerTest extends \Test\TestCase {
         $this->stubCurrentConfig();
         $this->groupManager->method('groupExists')->willReturn(true);
 
-        $response = $this->controller->saveConfig(['syndic'], [], [['label_fr' => '', 'label_en' => '']]);
+        $response = $this->controller->saveConfig([], ['syndic'], [['label_fr' => '', 'label_en' => '']]);
 
         $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
     }
@@ -172,8 +172,8 @@ class SettingsControllerTest extends \Test\TestCase {
         $this->groupManager->method('groupExists')->willReturn(true);
 
         $response = $this->controller->saveConfig(
-            ['syndic'],
             [],
+            ['syndic'],
             [['label_fr' => 'Plomberie']],
             '',
             '',

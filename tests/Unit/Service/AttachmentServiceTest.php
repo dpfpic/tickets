@@ -54,6 +54,11 @@ class AttachmentServiceTest extends \Test\TestCase {
         // soit son nom, ce qui masque le comportement réel testé plus bas
         // (dédoublonnage, rangement par statut, compte de stockage manquant...).
         $this->configService->method('getAllowedExtensions')->willReturn(['jpg', 'jpeg', 'png', 'pdf', 'txt']);
+        // Même remarque que pour getAllowedExtensions() : sans ce stub, le mock
+        // retourne 0 (valeur par défaut pour un type de retour int), et le
+        // moindre fichier de test est rejeté comme "trop volumineux" avant
+        // d'atteindre la logique réellement testée plus bas.
+        $this->configService->method('getMaxAttachmentSizeMb')->willReturn(50);
 
         $this->service = new AttachmentService(
             $this->rootFolder,

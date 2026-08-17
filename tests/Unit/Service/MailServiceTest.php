@@ -57,7 +57,16 @@ class MailServiceTest extends \Test\TestCase {
         $l10nFactory->method('findLanguage')->willReturn('fr');
         $l10nFactory->method('get')->willReturn($l10n);
 
-        $this->mailer->method('validateMailAddress')->willReturn(true);
+        // willReturnCallback plutôt qu'un simple willReturn(true) : un test
+        // (testSendOneSkipsInvalidAddressWithoutThrowing) a besoin que cette
+        // méthode retourne false pour une adresse précise. Reconfigurer un
+        // second stub method('validateMailAddress') dans le test lui-même ne
+        // fonctionne pas de façon fiable (le stub de setUp(), enregistré en
+        // premier, reste prioritaire) — un callback unique qui décide selon
+        // l'adresse évite ce piège.
+        $this->mailer->method('validateMailAddress')->willReturnCallback(
+            static fn (string $address) => str_contains($address, '@')
+        );
 
         $template = $this->createMock(IEMailTemplate::class);
         $template->method('setSubject')->willReturn(null);
@@ -194,7 +203,6 @@ class MailServiceTest extends \Test\TestCase {
         $ticket = $this->makeTicket(8, 'alice');
         $this->userManagerWithEmails(['alice' => 'not-an-email']);
         $this->configService->method('getManagerEmail')->willReturn('');
-        $this->mailer->method('validateMailAddress')->willReturn(false);
 
         $this->service->sendTicketCreated($ticket);
 
