@@ -69,7 +69,7 @@ class MailServiceTest extends \Test\TestCase {
             $this->sentTo[] = $to[0];
             return $message;
         });
-        $message->method('useTemplate')->willReturn(null);
+        $message->method('useTemplate')->willReturn($message);
         $this->mailer->method('createMessage')->willReturn($message);
 
         $this->service = new MailService(

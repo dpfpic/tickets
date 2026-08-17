@@ -18,7 +18,7 @@ use OCP\AppFramework\Http;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
-use OCP\IMailer;
+use OCP\Mail\IMailer;
 use OCP\IRequest;
 use OCP\IUserManager;
 use OCP\IUserSession;

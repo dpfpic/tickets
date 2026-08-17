@@ -19,6 +19,8 @@ use OCP\IDBConnection;
  *
  * Un préfixe uid dédié et un tearDown() de nettoyage évitent de polluer
  * d'autres données de la table lors de l'exécution de la suite.
+ *
+ * @group DB
  */
 class TicketReadMapperTest extends \Test\TestCase {
     private const TEST_UID = 'phpunit-ticketreadmapper-test';

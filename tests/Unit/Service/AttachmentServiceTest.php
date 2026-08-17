@@ -48,6 +48,13 @@ class AttachmentServiceTest extends \Test\TestCase {
         $this->urlGenerator = $this->createMock(IURLGenerator::class);
         $logger = $this->createMock(LoggerInterface::class);
 
+        // Par défaut, PHPUnit fait retourner un tableau vide à toute méthode
+        // mockée dont le type de retour est array — sans ce stub, toute
+        // pièce jointe est rejetée dès le contrôle d'extension, quel que
+        // soit son nom, ce qui masque le comportement réel testé plus bas
+        // (dédoublonnage, rangement par statut, compte de stockage manquant...).
+        $this->configService->method('getAllowedExtensions')->willReturn(['jpg', 'jpeg', 'png', 'pdf', 'txt']);
+
         $this->service = new AttachmentService(
             $this->rootFolder,
             $this->configService,
@@ -487,7 +494,11 @@ class AttachmentServiceTest extends \Test\TestCase {
 
         $this->configService->method('getStorageAccountUid')->willReturn('admin');
         $this->rootFolder->method('getUserFolder')->willReturn($userFolder);
-        $userFolder->method('nodeExists')->with('Tickets')->willReturn(false);
+        // expects() plutôt que method() : ça sert aussi d'assertion — sans
+        // elle, PHPUnit signale ce test comme "risky" (aucune assertion),
+        // alors que son but est justement de vérifier qu'on s'arrête bien
+        // au contrôle d'existence du dossier Tickets/ sans aller plus loin.
+        $userFolder->expects($this->once())->method('nodeExists')->with('Tickets')->willReturn(false);
 
         // Ne doit pas lever d'exception malgré l'absence de dossier Tickets/.
         $this->service->deleteAllTicketFolders();
