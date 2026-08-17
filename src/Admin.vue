@@ -10,7 +10,46 @@
 		</div>
 
 		<div v-else class="tickets-admin-form">
-			<div class="top-row">
+			<div class="settings-tabs" role="tablist">
+				<button
+					type="button"
+					class="settings-tab"
+					:class="{ active: activeTab === 'general' }"
+					role="tab"
+					:aria-selected="activeTab === 'general'"
+					@click="activeTab = 'general'">
+					{{ t('tickets', 'General') }}
+				</button>
+				<button
+					type="button"
+					class="settings-tab"
+					:class="{ active: activeTab === 'categories' }"
+					role="tab"
+					:aria-selected="activeTab === 'categories'"
+					@click="activeTab = 'categories'">
+					{{ t('tickets', 'Categories') }}
+				</button>
+				<button
+					type="button"
+					class="settings-tab"
+					:class="{ active: activeTab === 'attachments' }"
+					role="tab"
+					:aria-selected="activeTab === 'attachments'"
+					@click="activeTab = 'attachments'">
+					{{ t('tickets', 'Attachments') }}
+				</button>
+				<button
+					type="button"
+					class="settings-tab"
+					:class="{ active: activeTab === 'maintenance' }"
+					role="tab"
+					:aria-selected="activeTab === 'maintenance'"
+					@click="activeTab = 'maintenance'">
+					{{ t('tickets', 'Maintenance') }}
+				</button>
+			</div>
+
+			<div v-show="activeTab === 'general'" class="top-row">
 				<div class="field">
 					<div class="field-label-row">
 						<label>{{ t('tickets', 'Board groups (manage requests)') }}</label>
@@ -51,22 +90,6 @@
 						@change="scheduleGroupsAutosave">
 					<p class="field-hint">
 						{{ t('tickets', 'Email address (a group alias or a single person) notified when a ticket is created or taken in charge. Leave empty to send no email to this address.') }}
-					</p>
-				</div>
-
-				<div class="field">
-					<div class="field-label-row">
-						<label for="tickets-storage-account">{{ t('tickets', 'Attachment storage account') }}</label>
-					</div>
-					<input
-						id="tickets-storage-account"
-						v-model="storageAccountUid"
-						type="text"
-						class="manager-email-input"
-						placeholder="admin"
-						@change="scheduleGroupsAutosave">
-					<p class="field-hint">
-						{{ t('tickets', 'User ID of the Nextcloud account whose Files will store ticket attachments (folder named "Tickets", with one subfolder per ticket number). This account is shared storage, not a personal one — each ticket\'s folder is automatically shared (read-only) with the board group(s) as soon as an attachment is added, so the board can also open it directly in Files. Leave empty to disable attachments.') }}
 					</p>
 				</div>
 
@@ -118,6 +141,24 @@
 						{{ t('tickets', 'When off, the "Due date" field is hidden everywhere (ticket table and ticket detail).') }}
 					</p>
 				</div>
+			</div>
+
+			<div v-show="activeTab === 'attachments'" class="top-row">
+				<div class="field">
+					<div class="field-label-row">
+						<label for="tickets-storage-account">{{ t('tickets', 'Attachment storage account') }}</label>
+					</div>
+					<input
+						id="tickets-storage-account"
+						v-model="storageAccountUid"
+						type="text"
+						class="manager-email-input"
+						placeholder="admin"
+						@change="scheduleGroupsAutosave">
+					<p class="field-hint">
+						{{ t('tickets', 'User ID of the Nextcloud account whose Files will store ticket attachments (folder named "Tickets", with one subfolder per ticket number). This account is shared storage, not a personal one — each ticket\'s folder is automatically shared (read-only) with the board group(s) as soon as an attachment is added, so the board can also open it directly in Files. Leave empty to disable attachments.') }}
+					</p>
+				</div>
 
 				<div class="field">
 					<div class="field-label-row">
@@ -154,7 +195,9 @@
 						</template>
 					</p>
 				</div>
+			</div>
 
+			<div v-show="activeTab === 'maintenance'" class="top-row">
 				<div class="maintenance-section">
 					<h3>{{ t('tickets', 'Backup and maintenance') }}</h3>
 					<div class="maintenance-row">
@@ -207,7 +250,8 @@
 				<span v-if="groupsSaving" class="autosave-saving">{{ t('tickets', 'Saving…') }}</span>
 			</p>
 
-			<form class="categories-form" @submit.prevent="save">
+			<div v-show="activeTab === 'categories'">
+				<form class="categories-form" @submit.prevent="save">
 				<div class="categories-row">
 					<div class="field categories-field">
 						<label>{{ t('tickets', 'Categories') }}</label>
@@ -261,6 +305,7 @@
 					</button>
 				</div>
 			</form>
+			</div>
 		</div>
 	</div>
 </template>
@@ -279,6 +324,8 @@ export default {
 		return {
 			loading: true,
 			saving: false,
+			// Panneau de réglages actif : 'general' | 'categories' | 'attachments' | 'maintenance'.
+			activeTab: 'general',
 			groups: [],
 			boardGroups: [],
 			requesterGroups: [],
@@ -617,6 +664,33 @@ export default {
 	margin-top: 12px;
 	max-width: 100%;
 }
+.settings-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 20px;
+	border-bottom: 1px solid var(--color-border, #ccc);
+}
+.settings-tab {
+	padding: 10px 16px;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: none;
+	color: var(--color-text-maxcontrast, #767676);
+	font-size: 1em;
+	font-weight: 600;
+	cursor: pointer;
+	/* Chevauche légèrement la bordure du conteneur pour que la bordure active
+	   du bouton la remplace visuellement plutôt que de s'empiler dessus. */
+	margin-bottom: -1px;
+}
+.settings-tab:hover {
+	color: var(--color-main-text);
+}
+.settings-tab.active {
+	color: var(--color-main-text);
+	border-bottom-color: var(--color-primary-element, #0082c9);
+}
 .top-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -828,8 +902,7 @@ a.accent:hover {
 }
 .maintenance-section {
 	margin-top: 0;
-	padding-left: 24px;
-	border-left: 1px solid var(--color-border, #eee);
+	max-width: 500px;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
@@ -917,12 +990,6 @@ button.danger:disabled {
 	gap: 10px;
 }
 @media (max-width: 760px) {
-	.maintenance-section {
-		padding-left: 0;
-		padding-top: 20px;
-		border-left: none;
-		border-top: 1px solid var(--color-border, #eee);
-	}
 	.categories-row {
 		flex-direction: column;
 	}
@@ -931,6 +998,9 @@ button.danger:disabled {
 		padding-top: 20px;
 		border-left: none;
 		border-top: 1px solid var(--color-border, #eee);
+	}
+	.settings-tabs {
+		overflow-x: auto;
 	}
 }
 </style>
